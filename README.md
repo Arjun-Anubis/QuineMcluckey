@@ -18,3 +18,4 @@ $$
 $$
 Let k run from 1 to n, in every iteration we combine implicants of size k to form implicants of size k+1, thus we loop over every pair of implicants (we need only loop over (a,b) and (b,a) need not be covered, for every pair we first compare their masks then we check if they have a 1 bit difference when masked, if that is the case we delete both implicants and make a new implicant of size k + 1 with one more - in the location of the one bit difference all of which can be done using bit operations
 
+Now once we have all the prime implicants we can convert this into an SOP, we can use a greedy algorithm

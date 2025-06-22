@@ -1,26 +1,9 @@
-use std::io;
+mod ttyinput;
+mod structs;
 
-// An implicant contains a string and an enable flag
-#[derive(Debug)]
-struct Implicant {
-    representation: Vec<char>,
-    enable: bool
-}
-fn read_int() -> i32 {
-    let mut s = String::new();
-    io::stdin().read_line(&mut s)
-        .unwrap();
-    s.trim().parse().expect("Not a valid number")
-}
+use structs::Implicant;
 
-fn load_n_from_stdin() -> i32 {
-    println!("Please enter n: ");
-    let n:i32 = read_int();
-    return n
-}
-
-
-fn initialize(main: &mut Vec<Vec<Implicant>>, n: i32) {
+fn initialize(main: &mut Vec<Vec<Implicant>>, n: usize ) {
     let mut k = 0;
     while k <= n {
         main.push( Vec::new() );
@@ -28,111 +11,66 @@ fn initialize(main: &mut Vec<Vec<Implicant>>, n: i32) {
     }
 }
 
-fn load_minterms_from_stdin( n: usize ) -> Vec<Implicant> {
-    let mut size1_implicants: Vec<Implicant> = Vec::new();
-    println!("Enter minterms: (enter negative number to end)");
-    loop {
-        let minterm: i32 = read_int();
-        if minterm < 0 {
-            break
-        }
-        let size1_implicant : Implicant = Implicant {
-            representation: format!("{:0width$b}",minterm, width = n).chars().collect(),
-            enable : true
-        };
-        size1_implicants.push(size1_implicant)
-    }
-    size1_implicants
-}
-
-fn perform_merges( source: &mut Vec<Implicant> , target: &mut Vec<Implicant> ) -> i32 {
+fn iterate_algo( source: &mut Vec<Implicant> , target: &mut Vec<Implicant> ) -> Option<usize> {
+    // Record the number of merges
     let mut merge_count = 0;
+    
+    // Iterate pairs (i,j) in the source in a triangular fashion
     for i in 0.. source.len() {
         for j in i+1..source.len() {
-            // println!("Checking {:?} and {:?}", source[i], source[j] );
-            match check_merge( &source[i], &source[j] )
-            {
-                Some(location) => {
-                    // println!("Merging at location {}", location );
-                    source[i].enable = false;
-                    source[j].enable = false;
-                    target.push( merge( &source[i], &source[j], location) );
-                    merge_count+=1;
-                },
-                None => {
 
-                    // println!("Merge not possible");
+            // Try to merge the terms at source(i,j)
+            match source[i].try_merge( &mut source[j] ) {
+
+
+                // If they merge store the result in target and increment the count
+                Some(merged_term) => {
+                    target.push(merged_term);
+                    merge_count += 1;
                 }
+
+                // If the don't merge then do nothing
+                None  => ()
             }
         }
     }
-    println!("Merge count is {}", merge_count);
-    return merge_count
-}
 
-fn check_merge( implicant1: &Implicant, implicant2: &Implicant ) -> Option<usize> {
-    let mut found_difference = false;
-    let mut location = 0;
-    if true {
-        assert!( implicant1.representation.len() == implicant2.representation.len() );
-        let length = implicant1.representation.len();
-        for i in 0..length {
-            if implicant1.representation[i] != implicant2.representation[i] {
-                if implicant1.representation[i] == '-' || implicant2.representation[i] == '-' {
-                    return None
-                }
-                if found_difference {
-                    return None
-                }
-                location = i;
-                found_difference = true
-            }
-        }
-        if found_difference {
-            return Some(location)
-        } 
+    // Send an exit signal if there were no merges
+    if merge_count == 0 {
         return None
     }
-    return None
+    // Return the merge count otherwise
+    return Some(merge_count)
 }
-// This will create a merged implicant to be pushed into the target vector
-fn merge( implicant1: &Implicant, _implicant2: &Implicant, location: usize ) ->  Implicant {
-    let mut rep: Vec<char> = implicant1.representation.clone();
-    rep[location] = '-';
-    let merged_implicant : Implicant = Implicant { representation: rep, enable : true };
-    return merged_implicant;
-    
-}
+
 
 
 fn main() {
     // We make a vector of a vector of implicants, main[size] has implicants of size 2^size
     let mut main : Vec<Vec<Implicant>> = Vec::new();
+
     // We load n from stdin
-    let n : i32 = load_n_from_stdin();
+    let n : usize = ttyinput::load_n_from_stdin().try_into().unwrap();
 
     // The max size an implicant can have is 2^n, so we have to initialize main[0] to main [n] which
     // is n + 1 elements
     initialize(&mut main,n);
-    main[0] = load_minterms_from_stdin( n.try_into().unwrap() );
 
+    // We load the size 1 implicants with the provided minterms
+    main[0] = ttyinput::load_minterms_from_stdin( n );
 
-    // This loop can happen up-to n times from k=0 to k=n-1, since k+1=n and main is initialised up-to
-    // main[n]
-    let mut k: usize = 0;
-    while k < n.try_into().unwrap() {
-        
-        println!("Size 2^{}", k);
+    for k in 0..n {
         // First we split at mutable to make sure we can have two different mutable references to
         // main[k] and main [k+1] simultanouesly
         let (left, right) = main.split_at_mut(k+1);
-        // If there are zero merges then the algorithm is done
-        if perform_merges(&mut left[k], &mut right[0]) == 0 {
-            break;
+
+        match iterate_algo(&mut left[k], &mut right[0]) {
+            Some(count) => { println!("Merged {n} terms of size {size}", n = count, size = 1 << k) },
+            None => { 
+                println!("No further merges of size {size}, quitting...", size = 1 << k );
+                break;
+            }
         }
-        k+=1;
     }
-    println!("Final State");
-    println!("Main is {:#?}", main );
 }
 
