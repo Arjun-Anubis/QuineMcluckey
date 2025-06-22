@@ -1,6 +1,7 @@
 use std::io;
 
 // An implicant contains a string and an enable flag
+#[derive(Debug)]
 struct Implicant {
     representation: Vec<char>,
     enable: bool
@@ -12,7 +13,7 @@ fn read_int() -> i32 {
     s.trim().parse().expect("Not a valid number")
 }
 
-fn input_n() -> i32 {
+fn load_n_from_stdin() -> i32 {
     println!("Please enter n: ");
     let n:i32 = read_int();
     return n
@@ -27,7 +28,8 @@ fn initialize(main: &mut Vec<Vec<Implicant>>, n: i32) {
     }
 }
 
-fn load(main: &mut Vec<Vec<Implicant>>, n: usize ) {
+fn load_minterms_from_stdin( n: usize ) -> Vec<Implicant> {
+    let mut size1_implicants: Vec<Implicant> = Vec::new();
     println!("Enter minterms: (enter negative number to end)");
     loop {
         let minterm: i32 = read_int();
@@ -38,39 +40,45 @@ fn load(main: &mut Vec<Vec<Implicant>>, n: usize ) {
             representation: format!("{:0width$b}",minterm, width = n).chars().collect(),
             enable : true
         };
-        main[0].push(size1_implicant);
+        size1_implicants.push(size1_implicant)
     }
+    size1_implicants
 }
 
 fn perform_merges( source: &mut Vec<Implicant> , target: &mut Vec<Implicant> ) -> i32 {
     let mut merge_count = 0;
     for i in 0.. source.len() {
-        for j in i..source.len() {
+        for j in i+1..source.len() {
+            // println!("Checking {:?} and {:?}", source[i], source[j] );
             match check_merge( &source[i], &source[j] )
             {
                 Some(location) => {
+                    // println!("Merging at location {}", location );
                     source[i].enable = false;
                     source[j].enable = false;
                     target.push( merge( &source[i], &source[j], location) );
                     merge_count+=1;
                 },
-                None => () 
+                None => {
+
+                    // println!("Merge not possible");
+                }
             }
         }
     }
-
+    println!("Merge count is {}", merge_count);
     return merge_count
 }
 
 fn check_merge( implicant1: &Implicant, implicant2: &Implicant ) -> Option<usize> {
     let mut found_difference = false;
     let mut location = 0;
-    if implicant1.enable && implicant2.enable {
+    if true {
         assert!( implicant1.representation.len() == implicant2.representation.len() );
         let length = implicant1.representation.len();
         for i in 0..length {
             if implicant1.representation[i] != implicant2.representation[i] {
-                if implicant1.representation[i] == '-' || implicant2.representation[i] == 'i' {
+                if implicant1.representation[i] == '-' || implicant2.representation[i] == '-' {
                     return None
                 }
                 if found_difference {
@@ -80,7 +88,10 @@ fn check_merge( implicant1: &Implicant, implicant2: &Implicant ) -> Option<usize
                 found_difference = true
             }
         }
-        return Some(location)
+        if found_difference {
+            return Some(location)
+        } 
+        return None
     }
     return None
 }
@@ -97,26 +108,31 @@ fn merge( implicant1: &Implicant, _implicant2: &Implicant, location: usize ) -> 
 fn main() {
     // We make a vector of a vector of implicants, main[size] has implicants of size 2^size
     let mut main : Vec<Vec<Implicant>> = Vec::new();
-    let mut k: usize = 0;
-
-    let n : i32 = input_n();
+    // We load n from stdin
+    let n : i32 = load_n_from_stdin();
 
     // The max size an implicant can have is 2^n, so we have to initialize main[0] to main [n] which
     // is n + 1 elements
     initialize(&mut main,n);
-    load(&mut main, n.try_into().unwrap() );
+    main[0] = load_minterms_from_stdin( n.try_into().unwrap() );
 
 
     // This loop can happen up-to n times from k=0 to k=n-1, since k+1=n and main is initialised up-to
     // main[n]
+    let mut k: usize = 0;
     while k < n.try_into().unwrap() {
         
-        // If there are zero merges then the algorithm is done
+        println!("Size 2^{}", k);
+        // First we split at mutable to make sure we can have two different mutable references to
+        // main[k] and main [k+1] simultanouesly
         let (left, right) = main.split_at_mut(k+1);
+        // If there are zero merges then the algorithm is done
         if perform_merges(&mut left[k], &mut right[0]) == 0 {
             break;
         }
         k+=1;
     }
+    println!("Final State");
+    println!("Main is {:#?}", main );
 }
 
