@@ -4,18 +4,21 @@ This can be used in place of a karnaugh map when the number of inputs is very la
 
 
 # Principle
-The input to the algorithm is (a) the number of inputs _n_, and (b) the list of minterms given as numbers in radix 2 (so the ordering of the variables is fixed as according to the base the minterms are given in).
-
-The output is the minimal sum of products representation or the minimal product of sums presentation as required given in the form of k (which is as of yet undetermined and depends on the minterms themselves) strings of length n where every character is +, - or . as according the variable in that place value is present as itself, in its complement or not present 
+The input to the algorithm is (a) the number of inputs _n_, and (b) the list of minterms given as numbers in radix 2 (so the ordering of the variables is fixed as according to the base the minterms are given in). The output is the minimal sum of products required to impliment those minterms
 
 # Algorithm
 
 The algorithm is divided into two parts (a) finding the prime implicants and (b) using the prime implicants to find a sum of products representation
 
-For (a) there is a an outer loop that runs r <= _n_ times so as to generate implicants of sizes from
-$$
-2^0 - 2^{n}
-$$
-Let k run from 1 to n, in every iteration we combine implicants of size k to form implicants of size k+1, thus we loop over every pair of implicants (we need only loop over (a,b) and (b,a) need not be covered, for every pair we first compare their masks then we check if they have a 1 bit difference when masked, if that is the case we delete both implicants and make a new implicant of size k + 1 with one more - in the location of the one bit difference all of which can be done using bit operations
+## Finding prime implicants
 
-Now once we have all the prime implicants we can convert this into an SOP, we can use a greedy algorithm
+The principle is that _neighbouring_ implicants of the same size can be _merged_ to form an implicant with twice the size, thus we loop over the size 1 implicants and then merge any neighbouring ones into size 2 implicants, then loop over the size 2 implicants and merge any neighbouring ones into size 4 implicants and so on. The biggest possible implicant is size 2^n so we continue till we reach that size or when there are no more merges possible at the current size.
+
+Two implicants are said to be _neighbouring_, if they share the same mask, i.e. they have dashes in the same locations, and if they differ in only 1 bit.
+_Merging_ two implicants means that we take the two implicants and create an implicant of double the size which has a '-' in the bit of difference
+
+At the end of this procdure, the remaining implicants that have not been merged, i.e. are _unmerged_ are called the prime implicants, because they can not be merged further, i.e. there does not exist a larger implicant that covers them.
+
+## Finding a sum of products
+
+The prime implicants themselves represent a product, however, they overcover the required function, hence we must find a minimal set of implicants that covers all the minterms required. We do this using a greedy algorithm, first we look at whicch implicant covers the most minterms, then we pick that implicant and remove all the minterms it covers from the list, next we look at the remaining minterms, and find the implicant that covers the most remaining minterms, then repeat this procdure till all terms are covered. Thuis algorithm guantees a solution, but it may not be the minimal solution.
