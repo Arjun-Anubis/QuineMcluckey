@@ -80,5 +80,21 @@ impl Implicant {
         true
     }
 
+    pub fn as_product( self: &Implicant ) -> String {
+        let mut output_string = String::new();
+        for i in 0..self.representation.len() {
+
+            match self.representation[i] {
+                '1' => { output_string.push( crate::ttyinput::default_letters[i] ) }
+                '0' => { 
+                    output_string.push( crate::ttyinput::default_letters[i] );
+                    output_string.push( '\'' );
+                }
+                _ => ()
+            }
+        }
+        output_string
+    }
+
 
 }

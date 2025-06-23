@@ -103,9 +103,11 @@ fn main() {
 
         if let Ok([source, target]) = main.get_disjoint_mut([k,k+1]) {
             match iterate_algo(source, target) {
-                Some(count) => { println!("Merged {n} terms of size {size}", n = count, size = 1 << k) },
+                Some(count) => {
+                    // println!("Merged {n} terms of size {size}", n = count, size = 1 << k) 
+                },
                 None => { 
-                    println!("No further merges of size {size}, quitting...", size = 1 << k );
+                    // println!("No further merges of size {size}, quitting...", size = 1 << k );
                     break;
                 }
             }
@@ -121,7 +123,7 @@ fn main() {
 
 
     let required_implicants: Vec<Implicant> = greedy_algorithm( &minterms, &prime_implicants );
-    println!( "Required implicants are : {:?}", required_implicants );
 
+    ttyinput::display_implicants_as_SOP( &required_implicants );
 }
 

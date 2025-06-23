@@ -1,6 +1,7 @@
 use std::io;
 use crate::structs:: Implicant;
 
+pub const default_letters: [char; 4] = ['a','b','c','d'];
 
 fn read_int() -> Result<i32, std::num::ParseIntError> {
     let mut s = String::new();
@@ -14,7 +15,7 @@ pub fn load_n_from_stdin() -> i32 {
     println!("Please enter n: ");
     match read_int() {
         Ok(n) => { return n }
-        Err(_E) => {panic!("Invalid value for n");}
+        Err(_e) => {panic!("Invalid value for n");}
     }
 }
 
@@ -30,8 +31,18 @@ pub fn load_minterms_from_stdin( n: usize ) -> Vec<Implicant> {
                 };
                 implicants.push(implicant)
             }
-            Err(_E) => {break;}
+            Err(_e) => {break;}
         }
     }
     implicants
+}
+
+pub fn display_implicants_as_SOP( implicants: &Vec<Implicant> ) {
+    for i in 0..implicants.len() {
+        if i!=0 {
+            print!( " + " );
+        }
+        print!("{}", implicants[i].as_product() ); 
+    }
+    print!( "\n" );
 }
