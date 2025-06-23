@@ -1,16 +1,17 @@
-// An implicant contains a string and an enable flag
+// An implicant contains a string and an unmerged flag
+#[derive(Clone)]
 #[derive(Debug)]
 pub struct Implicant {
     pub representation: Vec<char>,
-    pub enable: bool
+    pub unmerged: bool
 }
 
 impl Implicant {
 
-    pub fn merge( self: &mut Implicant, other: &mut Implicant, location: usize ) ->  Implicant {
-        // Disable both implicants, thats why we need the mutable reference
-        self.enable = false;
-        other.enable = false;
+    fn merge( self: &mut Implicant, other: &mut Implicant, location: usize ) ->  Implicant {
+        // Mark both implicants as merged, thats why we need the mutable reference
+        self.unmerged = false;
+        other.unmerged = false;
 
         // Create a clone of either of the implicants
         let mut rep: Vec<char> = self.representation.clone();
@@ -19,11 +20,11 @@ impl Implicant {
         rep[location] = '-';
 
         // Create an implicant and return it
-        Implicant { representation: rep, enable : true }
+        Implicant { representation: rep, unmerged : true }
         
     }
 
-    pub fn check_merge( self: &Implicant, other: &Implicant ) -> Option<usize> {
+    fn check_merge( self: &Implicant, other: &Implicant ) -> Option<usize> {
         // Only succeeds if there is a difference
         let mut found_difference = false;
 
@@ -65,5 +66,19 @@ impl Implicant {
             None => { return None }
         }
     }
+
+    pub fn is_unmerged( self: &Implicant ) -> bool {
+        self.unmerged
+    }
+    
+    pub fn covers( self: &Implicant, other: &Implicant ) -> bool {
+        for i in 0..self.representation.len() {
+            if (self.representation[i] != other.representation[i]) && (self.representation[i] != '-') {
+                return false
+            }
+        }
+        true
+    }
+
 
 }

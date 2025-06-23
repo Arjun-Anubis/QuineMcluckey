@@ -4,10 +4,8 @@ mod structs;
 use structs::Implicant;
 
 fn initialize(main: &mut Vec<Vec<Implicant>>, n: usize ) {
-    let mut k = 0;
-    while k <= n {
+    for _k in 0..=n {
         main.push( Vec::new() );
-        k+=1;
     }
 }
 
@@ -20,17 +18,19 @@ fn iterate_algo( source: &mut Vec<Implicant> , target: &mut Vec<Implicant> ) -> 
         for j in i+1..source.len() {
 
             // Try to merge the terms at source(i,j)
-            match source[i].try_merge( &mut source[j] ) {
+            if let Ok([imp1, imp2]) = source.get_disjoint_mut([i,j]) {
+                match imp1.try_merge( imp2 ) {
 
 
-                // If they merge store the result in target and increment the count
-                Some(merged_term) => {
-                    target.push(merged_term);
-                    merge_count += 1;
+                    // If they merge store the result in target and increment the count
+                    Some(merged_term) => {
+                        target.push(merged_term);
+                        merge_count += 1;
+                    }
+
+                    // If the don't merge then do nothing
+                    None  => ()
                 }
-
-                // If the don't merge then do nothing
-                None  => ()
             }
         }
     }
@@ -41,6 +41,43 @@ fn iterate_algo( source: &mut Vec<Implicant> , target: &mut Vec<Implicant> ) -> 
     }
     // Return the merge count otherwise
     return Some(merge_count)
+}
+
+fn greedy_algorithm( minterms: &Vec<Implicant>, prime_implicants: &Vec<Implicant> ) -> Vec<Implicant> {
+    let mut required_implicants : Vec<Implicant> = Vec::new();
+    let mut working_minterms = minterms.clone();
+    loop {
+        let mut greatest_cover = 0;
+        let mut index_of_best_fit: usize = 0;
+        for i in 0..prime_implicants.len() {
+            let  cover_count = find_cover_count( &prime_implicants[i], &working_minterms );
+            if cover_count > greatest_cover {
+                greatest_cover = cover_count;
+                index_of_best_fit = i;
+                working_minterms = remove_coverage( &working_minterms, &prime_implicants[i] );
+            }
+        }
+        if greatest_cover == 0 {
+            break;
+        }
+        required_implicants.push( prime_implicants[ index_of_best_fit ].clone() )
+    }
+    required_implicants
+}
+
+fn find_cover_count( implicant: &Implicant, minterms: &Vec<Implicant> ) -> i32 {
+    let mut count = 0;
+    for minterm in minterms {
+        if implicant.covers(minterm) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn remove_coverage( current_minterms: &Vec<Implicant>, implicant: &Implicant ) -> Vec<Implicant> {
+    let copy = current_minterms.clone();
+    copy.into_iter().filter( |x| !( implicant.covers(x) ) ).collect()
 }
 
 
@@ -57,20 +94,34 @@ fn main() {
     initialize(&mut main,n);
 
     // We load the size 1 implicants with the provided minterms
-    main[0] = ttyinput::load_minterms_from_stdin( n );
+    let minterms = ttyinput::load_minterms_from_stdin( n );
+    main[0] = minterms.clone();
 
     for k in 0..n {
         // First we split at mutable to make sure we can have two different mutable references to
         // main[k] and main [k+1] simultanouesly
-        let (left, right) = main.split_at_mut(k+1);
 
-        match iterate_algo(&mut left[k], &mut right[0]) {
-            Some(count) => { println!("Merged {n} terms of size {size}", n = count, size = 1 << k) },
-            None => { 
-                println!("No further merges of size {size}, quitting...", size = 1 << k );
-                break;
+        if let Ok([source, target]) = main.get_disjoint_mut([k,k+1]) {
+            match iterate_algo(source, target) {
+                Some(count) => { println!("Merged {n} terms of size {size}", n = count, size = 1 << k) },
+                None => { 
+                    println!("No further merges of size {size}, quitting...", size = 1 << k );
+                    break;
+                }
             }
         }
     }
+    // Now we have the prime implicants, we can arrange them greedily since the actual problem is
+    // NP complete
+
+
+    // Flatten main and then filter to get only the prime implicants 
+    let prime_implicants = main.into_iter().flatten().filter( |x| x.is_unmerged() ).collect();
+
+
+
+    let required_implicants: Vec<Implicant> = greedy_algorithm( &minterms, &prime_implicants );
+    println!( "Required implicants are : {:?}", required_implicants );
+
 }
 
