@@ -22,3 +22,6 @@ At the end of this procdure, the remaining implicants that have not been merged,
 ## Finding a sum of products
 
 The prime implicants themselves represent a product, however, they overcover the required function, hence we must find a minimal set of implicants that covers all the minterms required. We do this using a greedy algorithm, first we look at whicch implicant covers the most minterms, then we pick that implicant and remove all the minterms it covers from the list, next we look at the remaining minterms, and find the implicant that covers the most remaining minterms, then repeat this procdure till all terms are covered. Thuis algorithm guantees a solution, but it may not be the minimal solution.
+
+
+Update -2026
